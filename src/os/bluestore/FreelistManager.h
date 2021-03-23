@@ -55,7 +55,8 @@ public:
   virtual std::vector<zone_state_t> zoned_get_zone_states(KeyValueDB *kvdb) const {
     return {};
   }
-  virtual void zoned_mark_zone_clean(uint64_t zone_num, KeyValueDB::Transaction txn) {}
+  virtual void zoned_mark_zones_to_clean_free(const std::set<uint64_t> *zones_to_clean,
+					      KeyValueDB *kvdb) {}
 };
 
 

@@ -5437,7 +5437,9 @@ int BlueStore::_init_alloc()
   ceph_assert(shared_alloc.a != NULL);
 
   if (bdev->is_smr()) {
-    shared_alloc.a->zoned_set_zone_states(fm->zoned_get_zone_states(db));
+    shared_alloc.a->zoned_init_alloc(fm->zoned_get_zone_states(db),
+				     &zoned_cleaner_lock,
+				     &zoned_cleaner_cond);
   }
 
   uint64_t num = 0, bytes = 0;
@@ -12333,9 +12335,9 @@ void BlueStore::_zoned_cleaner_thread() {
   ceph_assert(!zoned_cleaner_started);
   zoned_cleaner_started = true;
   zoned_cleaner_cond.notify_all();
-  std::deque<uint64_t> zones_to_clean;
+  const auto *zones_to_clean = shared_alloc.a->zoned_get_zones_to_clean();
   while (true) {
-    if (zoned_cleaner_queue.empty()) {
+    if (zones_to_clean->empty()) {
       if (zoned_cleaner_stop) {
 	break;
       }
@@ -12343,12 +12345,12 @@ void BlueStore::_zoned_cleaner_thread() {
       zoned_cleaner_cond.wait(l);
       dout(20) << __func__ << " wake" << dendl;
     } else {
-      zones_to_clean.swap(zoned_cleaner_queue);
       l.unlock();
-      while (!zones_to_clean.empty()) {
-	_zoned_clean_zone(zones_to_clean.front());
-	zones_to_clean.pop_front();
+      for (auto zone_num : *zones_to_clean) {
+	_zoned_clean_zone(zone_num);
       }
+      fm->zoned_mark_zones_to_clean_free(zones_to_clean, db);
+      shared_alloc.a->zoned_mark_zones_to_clean_free();
       l.lock();
     }
   }
@@ -12360,8 +12362,6 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   dout(10) << __func__ << " cleaning zone " << zone_num << dendl;
   // TODO: (1) copy live objects from zone_num to a new zone, (2) issue a RESET
   // ZONE operation to the device for the corresponding zone.
-  shared_alloc.a->zoned_mark_zone_clean(zone_num);
-  fm->zoned_mark_zone_clean(zone_num, db->get_transaction());
 }
 
 bluestore_deferred_op_t *BlueStore::_get_deferred_op(
@@ -14048,15 +14048,6 @@ int BlueStore::_do_alloc_write(
     return -ENOSPC;
   }
   _collect_allocation_stats(need, min_alloc_size, prealloc.size());
-
-  if (bdev->is_smr()) {
-    std::deque<uint64_t> zones_to_clean;
-    if (shared_alloc.a->zoned_get_zones_to_clean(&zones_to_clean)) {
-      std::lock_guard l{zoned_cleaner_lock};
-      zoned_cleaner_queue.swap(zones_to_clean);
-      zoned_cleaner_cond.notify_one();
-    }
-  }
 
   dout(20) << __func__ << " prealloc " << prealloc << dendl;
   auto prealloc_pos = prealloc.begin();

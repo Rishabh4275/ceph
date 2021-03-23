@@ -56,11 +56,13 @@ public:
   virtual void dump() = 0;
   virtual void dump(std::function<void(uint64_t offset, uint64_t length)> notify) = 0;
 
-  virtual void zoned_set_zone_states(std::vector<zone_state_t> &&_zone_states) {}
-  virtual bool zoned_get_zones_to_clean(std::deque<uint64_t> *zones_to_clean) {
-    return false;
+  virtual void zoned_init_alloc(std::vector<zone_state_t> &&_zone_states,
+				ceph::mutex *_cleaner_lock,
+				ceph::condition_variable *_cleaner_cond) {}
+  virtual const std::set<uint64_t> *zoned_get_zones_to_clean(void) const { 
+    return nullptr; 
   }
-  virtual void zoned_mark_zone_clean(uint64_t zone_num) {}
+  virtual void zoned_mark_zones_to_clean_free(void) {}
   
   virtual void init_add_free(uint64_t offset, uint64_t length) = 0;
   virtual void init_rm_free(uint64_t offset, uint64_t length) = 0;
