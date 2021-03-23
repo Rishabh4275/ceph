@@ -58,7 +58,7 @@ int64_t ZonedAllocator::allocate(
 		 << std::hex << want_size << dendl;
 
   uint64_t zone_num = starting_zone_num;
-  auto p = cleaning_in_progress_zones.cbegin();
+  auto p = cleaning_in_progress_zones.lower_bound(zone_num);
   for ( ; zone_num < num_zones; ++zone_num) {
     if (p != cleaning_in_progress_zones.cend() && *p == zone_num) {
       ldout(cct, 10) << __func__ << " skipping zone " << zone_num
