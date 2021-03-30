@@ -33,7 +33,8 @@ ZonedAllocator::ZonedAllocator(CephContext* cct,
       zone_size(((blk_size & 0x0000ffff00000000) >> 32) * 1024 * 1024),
       first_seq_zone_num((blk_size >> 48) & 0xffff),
       starting_zone_num(first_seq_zone_num),
-      num_zones(size / zone_size) {
+      num_zones(size / zone_size),
+      num_zones_to_clean(0) {
   ldout(cct, 10) << __func__ << " size 0x" << std::hex << size
 		 << " zone size 0x" << zone_size << std::dec
 		 << " number of zones " << num_zones
@@ -212,8 +213,9 @@ void ZonedAllocator::find_zones_to_clean(void) {
 
   ceph_assert(zones_to_clean.empty());
 
-  // TODO: make this tunable
-  uint64_t num_zones_to_clean_at_once = 1;
+  // TODO: make this tunable; handle the case when there aren't this many zones
+  // to clean.
+  num_zones_to_clean = 1;
 
   std::vector<uint64_t> idx(num_zones);
   std::iota(idx.begin(), idx.end(), 0);
@@ -224,7 +226,7 @@ void ZonedAllocator::find_zones_to_clean(void) {
     }
   }
 
-  std::partial_sort(idx.begin(), idx.begin() + num_zones_to_clean_at_once, idx.end(),
+  std::partial_sort(idx.begin(), idx.begin() + num_zones_to_clean, idx.end(),
 		    [this](uint64_t i1, uint64_t i2) {
 		      return zone_states[i1].num_dead_bytes > zone_states[i2].num_dead_bytes;
 		    });
@@ -233,7 +235,7 @@ void ZonedAllocator::find_zones_to_clean(void) {
 		 << *idx.begin() << " num_dead_bytes = " << zone_states[*idx.begin()].num_dead_bytes
 		 << dendl;
 
-  zones_to_clean = {idx.begin(), idx.begin() + num_zones_to_clean_at_once};
+  zones_to_clean = {idx.begin(), idx.begin() + num_zones_to_clean};
 
   // TODO: handle the case of disk being full.
   ceph_assert(!zones_to_clean.empty());
@@ -249,6 +251,7 @@ void ZonedAllocator::zoned_mark_zones_to_clean_free(void) {
     zone_states[zone_num].write_pointer = 0;
   }
   zones_to_clean.clear();
+  num_zones_to_clean = 0;
 }
 
 void ZonedAllocator::zoned_init_alloc(std::vector<zone_state_t> &&_zone_states,

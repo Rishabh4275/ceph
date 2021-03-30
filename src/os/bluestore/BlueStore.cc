@@ -12343,7 +12343,7 @@ void BlueStore::_zoned_cleaner_thread() {
   auto f = dynamic_cast<ZonedFreelistManager*>(fm);
   const auto *zones_to_clean = a->zoned_get_zones_to_clean();
   while (true) {
-    if (zones_to_clean->empty()) {
+    if (a->get_num_zones_to_clean() == 0) {
       if (zoned_cleaner_stop) {
 	break;
       }
