@@ -10,7 +10,6 @@
 #include <ostream>
 #include "kv/KeyValueDB.h"
 #include "bluestore_types.h"
-#include "zoned_types.h"
 
 class FreelistManager {
 public:
@@ -51,12 +50,6 @@ public:
 
   virtual void get_meta(uint64_t target_size,
     std::vector<std::pair<string, string>>*) const = 0;
-
-  virtual std::vector<zone_state_t> zoned_get_zone_states(KeyValueDB *kvdb) const {
-    return {};
-  }
-  virtual void zoned_mark_zones_to_clean_free(const std::set<uint64_t> *zones_to_clean,
-					      KeyValueDB *kvdb) {}
 };
 
 

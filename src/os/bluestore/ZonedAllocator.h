@@ -90,9 +90,9 @@ public:
 
   void zoned_init_alloc(std::vector<zone_state_t> &&_zone_states,
 			ceph::mutex *_cleaner_lock,
-			ceph::condition_variable *_cleaner_cond) override;
-  const std::set<uint64_t> *zoned_get_zones_to_clean(void) const override;
-  void zoned_mark_zones_to_clean_free(void) override;
+			ceph::condition_variable *_cleaner_cond);
+  const std::set<uint64_t> *zoned_get_zones_to_clean(void) const;
+  void zoned_mark_zones_to_clean_free(void);
 
   void init_add_free(uint64_t offset, uint64_t length) override;
   void init_rm_free(uint64_t offset, uint64_t length) override;

@@ -36,6 +36,8 @@
 #include "common/PriorityCache.h"
 #include "Allocator.h"
 #include "FreelistManager.h"
+#include "ZonedAllocator.h"
+#include "ZonedFreelistManager.h"
 #include "BlueFS.h"
 #include "BlueRocksEnv.h"
 #include "auth/Crypto.h"
@@ -5437,9 +5439,11 @@ int BlueStore::_init_alloc()
   ceph_assert(shared_alloc.a != NULL);
 
   if (bdev->is_smr()) {
-    shared_alloc.a->zoned_init_alloc(fm->zoned_get_zone_states(db),
-				     &zoned_cleaner_lock,
-				     &zoned_cleaner_cond);
+    auto a = dynamic_cast<ZonedAllocator*>(shared_alloc.a);
+    auto f = dynamic_cast<ZonedFreelistManager*>(fm);
+    a->zoned_init_alloc(f->zoned_get_zone_states(db),
+			&zoned_cleaner_lock,
+			&zoned_cleaner_cond);
   }
 
   uint64_t num = 0, bytes = 0;
@@ -12335,7 +12339,9 @@ void BlueStore::_zoned_cleaner_thread() {
   ceph_assert(!zoned_cleaner_started);
   zoned_cleaner_started = true;
   zoned_cleaner_cond.notify_all();
-  const auto *zones_to_clean = shared_alloc.a->zoned_get_zones_to_clean();
+  auto a = dynamic_cast<ZonedAllocator*>(shared_alloc.a);
+  auto f = dynamic_cast<ZonedFreelistManager*>(fm);
+  const auto *zones_to_clean = a->zoned_get_zones_to_clean();
   while (true) {
     if (zones_to_clean->empty()) {
       if (zoned_cleaner_stop) {
@@ -12349,8 +12355,8 @@ void BlueStore::_zoned_cleaner_thread() {
       for (auto zone_num : *zones_to_clean) {
 	_zoned_clean_zone(zone_num);
       }
-      fm->zoned_mark_zones_to_clean_free(zones_to_clean, db);
-      shared_alloc.a->zoned_mark_zones_to_clean_free();
+      f->zoned_mark_zones_to_clean_free(zones_to_clean, db);
+      a->zoned_mark_zones_to_clean_free();
       l.lock();
     }
   }
