@@ -230,6 +230,7 @@ int HMSMRDevice::open(const string& p)
     } else {
       size = st.st_size;
     }
+    size = 575LL * 256 * 1024 * 1024;
 
     char partition[PATH_MAX], devname[PATH_MAX];
     if ((r = blkdev_buffered.partition(partition, PATH_MAX)) ||
