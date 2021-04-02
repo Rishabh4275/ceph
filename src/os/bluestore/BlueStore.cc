@@ -12279,8 +12279,10 @@ void BlueStore::_zoned_cleaner_thread() {
   dout(10) << __func__ << " start" << dendl;
   std::unique_lock l{zoned_cleaner_lock};
   ceph_assert(!zoned_cleaner_started);
+  //RISHABH: Checks that only 1 execution of this is executing at a time.
   zoned_cleaner_started = true;
   zoned_cleaner_cond.notify_all();
+  //RISHABH: Why do we do this here though????
   std::deque<uint64_t> zones_to_clean;
   while (true) {
     if (zoned_cleaner_queue.empty()) {
@@ -12292,6 +12294,7 @@ void BlueStore::_zoned_cleaner_thread() {
       dout(20) << __func__ << " wake" << dendl;
     } else {
       zones_to_clean.swap(zoned_cleaner_queue);
+      // RISHABH: Why is unlock present here????
       l.unlock();
       while (!zones_to_clean.empty()) {
 	_zoned_clean_zone(zones_to_clean.front());
@@ -12308,8 +12311,112 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   dout(10) << __func__ << " cleaning zone " << zone_num << dendl;
   // TODO: (1) copy live objects from zone_num to a new zone, (2) issue a RESET
   // ZONE operation to the device for the corresponding zone.
-  shared_alloc.a->zoned_mark_zone_clean(zone_num);
-  fm->zoned_mark_zone_clean(zone_num, db->get_transaction());
+
+  //Step 1
+  //TODO:- Is there something else that needs to be done for the inmemory storage?
+  zone_state_t zone_state;
+  KeyValueDB::Iterator it = db->get_iterator(PREFIX_ZONED_CL_INFO, KeyValueDB::ITERATOR_NOCACHE);
+  fm->load_zone_state_from_db(zone_num, zone_state, it);
+
+  //Get details of zone -- ?:
+
+
+  //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
+  //zone_state to 
+  /*
+  Collection *c,
+  OnodeRef o,
+  uint64_t offset,
+  size_t length,
+  bufferlist& bl,
+  uint32_t op_flags,
+  uint64_t retry_count
+  */
+  _do_read(c, o, offset, length, bl, op_flags);
+
+  //Step 3 allocate zone and then _do_write or _do_clone
+  /*
+  TransContext *txc,
+  CollectionRef& c,
+  OnodeRef o,
+  uint64_t offset,
+  uint64_t length,
+  bufferlist& bl,
+  uint32_t fadvise_flags
+  */
+  _do_write(txc, c, o, offset, length, bl, fadvise_flags);
+
+
+  //Step 4 _do_truncate
+  /*
+  TransContext *txc,
+  CollectionRef& c,
+  OnodeRef o,
+  uint64_t offset,
+  //Mostly ignore :- set<SharedBlob*> *maybe_unshared_blobs
+  */
+  _do_truncate(txc, c, o, offset);
+
+
+  shared_alloc.a->zoned_mark_zone_clean(zone_num); // Step 5
+  //TODO: HMSMR block device -- reset hasn't been done
+
+  fm->zoned_mark_zone_clean(zone_num, db->get_transaction()); // Step 6
+
+  /* RISHABH
+
+  a. Get zone using zone num == Look at reading zone from db first and we'll add comment about inmemory for next step
+  _open_fm
+  get from fm->
+
+  b. Read from db or inmemory
+  Get iterator using zoned the zoned_prefix (Namespace G)
+  const string PREFIX_ZONED_CL_INFO = "G";
+  c. Iterate across the extends to realize which parts are empty
+  d. Read contents of existing extents and _do_write to write them
+
+  1. Print contents of the zone to clean
+  ZonedFreelistManager - load_zone_state_from_db for getting contents from database
+  How?
+
+  2. Figure out the dead bytes and the live bytes = can be found from zoned_types, number of dead bytes
+  Live Bytes?? -- Which bytes exactly are dead or live?
+  Can read extends to figure out dead bytes in zones as they would be live bytes?
+  the object identifiers of all live objects
+  within the zone ABC can be found by querying the G namespace for keys that have ABC as the prefix. [Confirm that this is right, from Prof's thesis]
+
+  G namespace has list of objects with the zone_number and their sizes of live zones.
+
+  3. Figure out which zone to copy these bytes to. = Used ZonedAllocator for this. == first_seq_zone_num ??
+  First we allocate a zone -- check where all allocate is called.
+  _do_write to write... or clone 
+  Does do_write use allocate, how do you get zone to write on?
+  _do_truncate to remove
+
+  Possbily look at cloning at object
+  Where does do write - write an object: 
+  Allocate space for it. 
+  How to mark it busy:
+  Concurrently: End goal : Just don't write code so that limitation:
+  Temp zone: and after filling the zone, write it to an actual zone???? -- Is this what it is being said..
+
+  4. How to update metadata for the moved write bytes [Hoping _do_truncate and _do_write handle this]
+  Can get metadata using ZonedFreelistManager = get_meta
+  How to update?
+  _zoned_update_cleaning_metadata
+
+  5. Reset zone so that it can be used again. [Done below]
+
+  6. Commit to RocksDB? = The transaction code  [Mostly not needed]
+  Using ZonedFreelistManager = write_zone_state_to_db
+
+  Questions:
+  1. We see zones in some order over here, how is the zones order in zones_to_clean set
+  Possibly FIFO? - Follow greedy for starters, find first zone with that much space and add to that zone
+  We don't do random writes, so write to the last zone, and continue.
+  2. How does the allocation of zones work: Do they just continue in a order
+  I think I asked this before, but just to confirm: zones are only written sequentially ? 
+  */
 }
 
 bluestore_deferred_op_t *BlueStore::_get_deferred_op(
