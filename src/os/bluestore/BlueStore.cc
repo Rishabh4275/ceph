@@ -12372,11 +12372,49 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   // ZONE operation to the device for the corresponding zone.
    //Step 1
   //TODO:- Is there something else that needs to be done for the inmemory storage?
+  //List of live objects in zone:
+
   zone_state_t zone_state;
-  KeyValueDB::Iterator it = db->get_iterator(PREFIX_ZONED_CL_INFO, KeyValueDB::ITERATOR_NOCACHE);
-  fm->load_zone_state_from_db(zone_num, zone_state, it);
+  std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  dout(10) << __func__ << " RISHABH Passing prefix " << pfx << dendl;
+  
+  KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
+  while(it->valid()) {
+    std::string k = it->key();
+    bufferlist bl = it->value();
+    auto p = bl.cbegin();
+    uint64_t offset;
+    ::decode(offset, p);
+    dout(10) << __func__ << " RISHABH key is (zone_num + oid)" << k <<" offset is "<< offset << dendl;
+    ghobject_t oid;
+    int r = get_key_object(k, &oid);
+    CollectionRef c = _get_collection(coll_t::meta());
+    OnodeRef o = c->get_onode(oid, false);
+    o->extent_map.fault_range(db, 0, o->onode.size);
+    ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
+    //_do_read(c, o, offset, );
+    // dynamic cast 
+    //CollectionRef on _get_colleciton based on coll_t, look at coll_map
+    
+  
+  //We have string of OnodeRef from oid, length will be complete length
+  //get_object_key or get_key_object
+
+  //_zoned_update_cleaning_metadata == look at zoned functions
+
+  //compare between _do_read or read, similarly between _do_write and write
+
+  }
+  
+  // Look for specific keys in the zones, probably iterator over it to reach the zone num that you have
+  /// ------ 
+
+  // Look at exactly how it is being added to PREFIX_ZONED_CL_INFO
+
+  //fm->load_zone_state_from_db(zone_num, zone_state, it);
 
   //Get details of zone -- ?:
+  //Dump complete keys :- 
 
 
   //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
@@ -12390,7 +12428,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   uint32_t op_flags,
   uint64_t retry_count
   */
-  _do_read(c, o, offset, length, bl, op_flags);
+  //_do_read(c, o, offset, length, bl, op_flags);
 
   //Step 3 allocate zone and then _do_write or _do_clone
   /*
@@ -12402,7 +12440,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   bufferlist& bl,
   uint32_t fadvise_flags
   */
-  _do_write(txc, c, o, offset, length, bl, fadvise_flags);
+  //_do_write(txc, c, o, offset, length, bl, fadvise_flags);
 
 
   //Step 4 _do_truncate
@@ -12413,7 +12451,15 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   uint64_t offset,
   //Mostly ignore :- set<SharedBlob*> *maybe_unshared_blobs
   */
-  _do_truncate(txc, c, o, offset);
+ 
+//Check before dynamic cast and try it.....
+///This weekend work .... [See how things go from there]
+
+//Look at prof's code and possibly what the issue is, so look at zz, and that the assertion are working. 
+
+//Check the dumps and look at objects written to zone... follow the zones == matching ....
+
+  //_do_truncate(txc, c, o, offset);
 
 
   shared_alloc.a->zoned_mark_zone_clean(zone_num); // Step 5
