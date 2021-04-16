@@ -12423,7 +12423,11 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
-    //_do_read(c, o, offset, );
+    //Should I use read here instead?
+    _do_read(c.get(), o, 0, o->onode.size, bl, 0);
+    ceph_assert(r >= 0 && r <= o->onode.size);
+    
+    
     // dynamic cast 
     //CollectionRef on _get_colleciton based on coll_t, look at coll_map
     
@@ -12493,10 +12497,10 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   //_do_truncate(txc, c, o, offset);
 
 
-  shared_alloc.a->zoned_mark_zone_clean(zone_num); // Step 5
+  //shared_alloc.a->zoned_mark_zone_clean(zone_num); // Step 5
   //TODO: HMSMR block device -- reset hasn't been done
 
-  fm->zoned_mark_zone_clean(zone_num, db->get_transaction()); // Step 6
+  //fm->zoned_mark_zone_clean(zone_num, db->get_transaction()); // Step 6
 
   /* RISHABH
 
