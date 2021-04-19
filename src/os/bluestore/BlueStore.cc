@@ -13895,7 +13895,7 @@ void BlueStore::_kv_finalize_thread()
   kv_finalize_started = false;
 }
 
-//d ifdef HAVE_LIBZBD
+//d #ifdef HAVE_LIBZBD
 void BlueStore::_zoned_cleaner_start()
 {
   dout(10) << __func__ << dendl;
@@ -13979,6 +13979,15 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   dout(10) << __func__ << " RISHABH Passing prefix " << pfx << dendl;
 
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
+  //KeyValueDB::Transaction txn = kvdb->get_transaction();
+  //txn = db->get_transaction();
+
+  CollectionRef c = _get_collection(coll_t::meta());
+
+  //Does it matter if I do these after read?
+  OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
+  TransContext *txc = _txc_create(c.get(), osr, nullptr);
+
   while (it->valid())
   {
     std::string k = it->key();
@@ -13989,7 +13998,6 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     dout(10) << __func__ << " RISHABH key is (zone_num + oid)" << k << " offset is " << offset << dendl;
     ghobject_t oid;
     int r = get_key_object(k, &oid);
-    CollectionRef c = _get_collection(coll_t::meta());
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
@@ -13997,6 +14005,22 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     //Check that the output of _do_read is valid
     ceph_assert(r >= 0 && r <= o->onode.size);
+
+    //txn->set(PREFIX_ZONED_FM_INFO, k, bl);
+    //What should we use instead of PREFIX_ZONED_FM_INFO
+
+    OnodeRef clonedO = c->get_onode(oid, false);
+    clonedO->oid.hobj.get_hash() = o->oid.hobj.get_hash();
+
+    _clone(txc, c, o, clonedO);
+
+    _do_write(txc, c, o, 0, o->onode.size, bl, 0);
+
+    _do_truncate(txc, c, clonedO, 0);
+
+    //How do transactions work among all of these points????
+    //Let's write it and send it to the prof and get a response
+
     //Do I just do a write here or collate and then write
     //If collate how so ?
     //Truncate for a whole zone so it'll be after
@@ -14013,7 +14037,29 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     // truncate metadata operation,
   }
 
-  //Step 3 allocate zone and then _do_write or _do_clone
+  //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
+  //zone_state to
+  /*
+  Collection *c,
+  OnodeRef o,
+  uint64_t offset,
+  size_t length,
+  bufferlist& bl,
+  uint32_t op_flags,
+  uint64_t retry_count
+  */
+  //_do_read(c, o, offset, length, bl, op_flags);
+
+  //Step 3a
+  /*
+  TransContext *txc,
+  CollectionRef &c,
+  OnodeRef &oldo,
+  OnodeRef &newo
+  /*
+  _clone(txc, c, o, no);
+
+  //Step 3b allocate zone and then _do_write or _do_clone
   /*
   TransContext *txc,
   CollectionRef& c,
@@ -17171,6 +17217,7 @@ int BlueStore::_clone(TransContext *txc,
   dout(15) << __func__ << " " << c->cid << " " << oldo->oid << " -> "
            << newo->oid << dendl;
   int r = 0;
+  //RISHABH Why is this check here?
   if (oldo->oid.hobj.get_hash() != newo->oid.hobj.get_hash())
   {
     derr << __func__ << " mismatched hash on " << oldo->oid
