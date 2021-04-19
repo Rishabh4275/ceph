@@ -13895,7 +13895,7 @@ void BlueStore::_kv_finalize_thread()
   kv_finalize_started = false;
 }
 
-#ifdef HAVE_LIBZBD
+//d #ifdef HAVE_LIBZBD
 void BlueStore::_zoned_cleaner_start()
 {
   dout(10) << __func__ << dendl;
@@ -14010,7 +14010,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     //What should we use instead of PREFIX_ZONED_FM_INFO
 
     OnodeRef clonedO = c->get_onode(oid, false);
-    clonedO->oid.hobj.get_hash() = o->oid.hobj.get_hash();
+    clonedO->oid.hobj.set_hash(o->oid.hobj.get_hash());
 
     _clone(txc, c, o, clonedO);
 
@@ -14056,8 +14056,8 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   CollectionRef &c,
   OnodeRef &oldo,
   OnodeRef &newo
-  /*
-  _clone(txc, c, o, no);
+  */
+  //_clone(txc, c, o, no);
 
   //Step 3b allocate zone and then _do_write or _do_clone
   /*
