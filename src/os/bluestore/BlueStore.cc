@@ -13895,7 +13895,7 @@ void BlueStore::_kv_finalize_thread()
   kv_finalize_started = false;
 }
 
-//d #ifdef HAVE_LIBZBD
+#ifdef HAVE_LIBZBD
 void BlueStore::_zoned_cleaner_start()
 {
   dout(10) << __func__ << dendl;
