@@ -13989,15 +13989,16 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     dout(10) << __func__ << "Rishabh Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
     ghobject_t oid;
     int r = get_key_object(k, &oid);
+    dout(10) << __func__ << "Rishabh get_object key value of r: "<<r<< dendl;
     CollectionRef c = _get_collection(coll_t::meta());
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
     //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACH
-        dout(10) << __func__ << "Rishabh Read Start"<< dendl;E
+    dout(10) << __func__ << "Rishabh Read Start"<< dendl;E
     r = _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     ceph_assert(r >= 0 && r <= (int)o->onode.size);
-        dout(10) << __func__ << "Rishabh Read End"<< dendl;
+    dout(10) << __func__ << "Rishabh Read End"<< dendl;
 
     OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
     TransContext *txc = _txc_create(c.get(), osr, nullptr);
