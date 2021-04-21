@@ -13993,19 +13993,24 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
-    //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACHE
-    _do_read(c.get(), o, 0, o->onode.size, bl, 0);
+    //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACH
+        dout(10) << __func__ << "Rishabh Read Start"<< dendl;E
+    r = _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     ceph_assert(r >= 0 && r <= (int)o->onode.size);
+        dout(10) << __func__ << "Rishabh Read End"<< dendl;
 
     OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
     TransContext *txc = _txc_create(c.get(), osr, nullptr);
     OnodeRef clonedO = c->get_onode(oid, false);
     clonedO->oid.hobj.set_hash(o->oid.hobj.get_hash());
-
+    dout(10) << __func__ << "Rishabh Clone Start"<< dendl;
     _clone(txc, c, o, clonedO);
+        dout(10) << __func__ << "Rishabh Write Start"<< dendl;
     _do_write(txc, c, o, 0, o->onode.size, bl, 0);
     txc->write_onode(o);
+        dout(10) << __func__ << "Rishabh Truncate Start"<< dendl;
     _do_truncate(txc, c, clonedO, 0);
+    dout(10) << __func__ << "Rishabh While loop iteration over"<< dendl;
     
     //How do transactions work among all of these points????
     //Let's write it and send it to the prof and get a response
@@ -14141,6 +14146,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   2. How does the allocation of zones work: Do they just continue in a order
   I think I asked this before, but just to confirm: zones are only written sequentially ? 
   */
+     dout(10) << __func__ << "Rishabh Function Over"<< dendl;
 }
 #endif
 
