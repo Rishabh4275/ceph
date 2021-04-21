@@ -13977,47 +13977,36 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
   dout(10) << __func__ << " RISHABH Passing prefix " << pfx << dendl;
-
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
-  //KeyValueDB::Transaction txn = kvdb->get_transaction();
-  //txn = db->get_transaction();
-
-  CollectionRef c = _get_collection(coll_t::meta());
-
-  //Does it matter if I do these after read?
-  OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
-  TransContext *txc = _txc_create(c.get(), osr, nullptr);
 
   while (it->valid())
   {
     std::string k = it->key();
     bufferlist bl = it->value();
     auto p = bl.cbegin();
-    uint64_t offset;
+    int64_t offset;
     ::decode(offset, p);
-    dout(10) << __func__ << " RISHABH key is (zone_num + oid)" << k << " offset is " << offset << dendl;
+    dout(10) << __func__ << "Rishabh Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
     ghobject_t oid;
     int r = get_key_object(k, &oid);
+    CollectionRef c = _get_collection(coll_t::meta());
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
-    //Should I use read here instead?
+    //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACHE
     _do_read(c.get(), o, 0, o->onode.size, bl, 0);
-    //Check that the output of _do_read is valid
-    ceph_assert(r >= 0 && r <= o->onode.size);
+    ceph_assert(r >= 0 && r <= (int)o->onode.size);
 
-    //txn->set(PREFIX_ZONED_FM_INFO, k, bl);
-    //What should we use instead of PREFIX_ZONED_FM_INFO
-
+    OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
+    TransContext *txc = _txc_create(c.get(), osr, nullptr);
     OnodeRef clonedO = c->get_onode(oid, false);
     clonedO->oid.hobj.set_hash(o->oid.hobj.get_hash());
 
     _clone(txc, c, o, clonedO);
-
     _do_write(txc, c, o, 0, o->onode.size, bl, 0);
-
+    txc->write_onode(o);
     _do_truncate(txc, c, clonedO, 0);
-
+    
     //How do transactions work among all of these points????
     //Let's write it and send it to the prof and get a response
 
