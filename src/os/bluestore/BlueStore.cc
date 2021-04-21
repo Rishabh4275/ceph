@@ -13995,7 +13995,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
     //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACH
-    dout(10) << __func__ << "Rishabh Read Start"<< dendl;E
+    dout(10) << __func__ << "Rishabh Read Start"<< dendl;
     r = _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     ceph_assert(r >= 0 && r <= (int)o->onode.size);
     dout(10) << __func__ << "Rishabh Read End"<< dendl;
