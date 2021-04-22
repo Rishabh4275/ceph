@@ -12967,6 +12967,7 @@ std::string BlueStore::_zoned_get_prefix(uint64_t offset)
   uint64_t zone_num = offset / bdev->get_zone_size();
   std::string zone_key;
   _key_encode_u64(zone_num, &zone_key);
+  dout(10) << __func__ << " Rishabh zone num " << zone_num << " and zone key "<<zone_key << dendl;
   return PREFIX_ZONED_CL_INFO + zone_key;
 }
 
@@ -13976,7 +13977,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
 
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
-  dout(10) << __func__ << " RISHABH Passing prefix " << pfx << dendl;
+  dout(10) << __func__ << " Rishabh Passing prefix " << pfx << dendl;
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
 
   while (it->valid())
@@ -13986,32 +13987,32 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
     auto p = bl.cbegin();
     int64_t offset;
     ::decode(offset, p);
-    dout(10) << __func__ << "Rishabh Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
+    dout(10) << __func__ << " Rishabh Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
     ghobject_t oid;
     int r = get_key_object(k, &oid);
-    dout(10) << __func__ << "Rishabh get_object key value of r: "<<r<< dendl;
+    dout(10) << __func__ << " Rishabh get_object key value of r: "<<r<< dendl;
     CollectionRef c = _get_collection(coll_t::meta());
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
     //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACH
-    dout(10) << __func__ << "Rishabh Read Start"<< dendl;
+    dout(10) << __func__ << " Rishabh Read Start"<< dendl;
     r = _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     ceph_assert(r >= 0 && r <= (int)o->onode.size);
-    dout(10) << __func__ << "Rishabh Read End"<< dendl;
+    dout(10) << __func__ << " Rishabh Read End"<< dendl;
 
     OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
     TransContext *txc = _txc_create(c.get(), osr, nullptr);
     OnodeRef clonedO = c->get_onode(oid, false);
     clonedO->oid.hobj.set_hash(o->oid.hobj.get_hash());
-    dout(10) << __func__ << "Rishabh Clone Start"<< dendl;
+    dout(10) << __func__ << " Rishabh Clone Start"<< dendl;
     _clone(txc, c, o, clonedO);
-        dout(10) << __func__ << "Rishabh Write Start"<< dendl;
+        dout(10) << __func__ << " Rishabh Write Start"<< dendl;
     _do_write(txc, c, o, 0, o->onode.size, bl, 0);
     txc->write_onode(o);
         dout(10) << __func__ << "Rishabh Truncate Start"<< dendl;
     _do_truncate(txc, c, clonedO, 0);
-    dout(10) << __func__ << "Rishabh While loop iteration over"<< dendl;
+    dout(10) << __func__ << " Rishabh While loop iteration over"<< dendl;
     
     //How do transactions work among all of these points????
     //Let's write it and send it to the prof and get a response
@@ -14147,7 +14148,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   2. How does the allocation of zones work: Do they just continue in a order
   I think I asked this before, but just to confirm: zones are only written sequentially ? 
   */
-     dout(10) << __func__ << "Rishabh Function Over"<< dendl;
+     dout(10) << __func__ << " Rishabh Function Over"<< dendl;
 }
 #endif
 
