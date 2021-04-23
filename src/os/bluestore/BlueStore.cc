@@ -13977,6 +13977,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
 
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  //Zoned get prefix does not work
   dout(10) << __func__ << " Rishabh Passing prefix " << pfx << dendl;
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
 
@@ -14032,6 +14033,17 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
 
     // truncate metadata operation,
   }
+
+  auto a = dynamic_cast<ZonedAllocator *>(shared_alloc.a);
+  ceph_assert(a);
+  auto f = dynamic_cast<ZonedFreelistManager *>(fm);
+  ceph_assert(f);
+
+  a->mark_zones_to_clean_free(); // Step 5
+  //TODO: HMSMR block device -- reset hasn't been done
+  std::set<uint64_t> zone_num_set;
+  zone_num_set.insert(zone_num);
+  f->mark_zones_to_clean_free(&zone_num_set, db); // Step 6
 
   //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
   //zone_state to
@@ -14148,7 +14160,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   2. How does the allocation of zones work: Do they just continue in a order
   I think I asked this before, but just to confirm: zones are only written sequentially ? 
   */
-     dout(10) << __func__ << " Rishabh Function Over"<< dendl;
+  dout(10) << __func__ << " Rishabh Function Over"<< dendl;
 }
 #endif
 
