@@ -227,6 +227,7 @@ void ZonedAllocator::find_zones_to_clean(void) {
 		 << dendl;
 
   zones_to_clean = {idx.begin(), idx.begin() + num_zones_to_clean_at_once};
+  //TODO: Add check over that you're not adding zones with 0 dead bytes 
   num_zones_to_clean = num_zones_to_clean_at_once;
 
   // TODO: handle the case of disk being full.

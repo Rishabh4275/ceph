@@ -13966,6 +13966,8 @@ void BlueStore::_zoned_cleaner_thread()
   zoned_cleaner_started = false;
 }
 
+
+//TODO: Where zone_num is set, check that the num of dead bytes isn't 0.
 void BlueStore::_zoned_clean_zone(uint64_t zone_num)
 {
   dout(10) << __func__ << " cleaning zone " << zone_num << dendl;

@@ -423,7 +423,24 @@ bool HMSMRDevice::get_thin_utilization(uint64_t *total, uint64_t *avail) const
 
 bool HMSMRDevice::reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_range_end) {
   ceph_assert(is_smr());
-    std::vector<zbd_zone> zones(1000);
+    
+  int dev = zbd_open(path.c_str(), O_RDWR | O_DIRECT | O_LARGEFILE, nullptr);
+  if (dev < 0) {
+    return false;
+  }
+  auto close_dev = make_scope_guard([dev] { zbd_close(dev); });
+
+  unsigned int nr_zones = 0;
+  if (zbd_report_nr_zones(dev, 0, 0, ZBD_RO_NOT_WP, &nr_zones) != 0) {
+    return false;
+  }
+
+  std::vector<zbd_zone> zones(nr_zones);
+  if (zbd_report_zones(dev, 0, 0, ZBD_RO_NOT_WP, zones.data(), &nr_zones) != 0) {
+    return false;
+  }
+
+
   dout(10) << __func__ << " Duda zone size is:  " << zone_size << dendl;
   dout(10) << __func__ << " Duda zone number is:  " << zone_num_range_start << dendl;
   dout(10) << __func__ << " Duda zone write pointer is 2:  " << zbd_zone_wp(&zones[zone_num_range_start]) << dendl;
