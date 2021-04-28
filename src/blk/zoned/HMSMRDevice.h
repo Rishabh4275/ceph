@@ -137,6 +137,8 @@ public:
 
   bool get_thin_utilization(uint64_t *total, uint64_t *avail) const final;
 
+  bool reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_range_end);
+
   int read(uint64_t off, uint64_t len, bufferlist *pbl,
 	   IOContext *ioc,
 	   bool buffered) final;

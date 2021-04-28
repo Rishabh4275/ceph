@@ -13969,12 +13969,13 @@ void BlueStore::_zoned_cleaner_thread()
 void BlueStore::_zoned_clean_zone(uint64_t zone_num)
 {
   dout(10) << __func__ << " cleaning zone " << zone_num << dendl;
+
   // TODO: (1) copy live objects from zone_num to a new zone, (2) issue a RESET
   // ZONE operation to the device for the corresponding zone.
   //Step 1
   //TODO:- Is there something else that needs to be done for the inmemory storage?
   //List of live objects in zone:
-
+  bdev->reset_zones(zone_num, zone_num);
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
   //Zoned get prefix does not work
@@ -14044,6 +14045,8 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   std::set<uint64_t> zone_num_set;
   zone_num_set.insert(zone_num);
   f->mark_zones_to_clean_free(&zone_num_set, db); // Step 6
+
+  //Ask when is the final exam?? -- Hope not on Friday 
 
   //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
   //zone_state to

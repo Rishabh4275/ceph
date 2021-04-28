@@ -421,6 +421,25 @@ bool HMSMRDevice::get_thin_utilization(uint64_t *total, uint64_t *avail) const
   return get_vdo_utilization(vdo_fd, total, avail);
 }
 
+bool HMSMRDevice::reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_range_end) {
+  ceph_assert(is_smr());
+  dout(10) << __func__ << " Duda zone size is:  " << zone_size << dendl;
+  dout(10) << __func__ << " Duda zone number is:  " << zone_num_range_start << dendl;
+  dout(10) << __func__ << " Duda zone write pointer is:  " << zbd_zone_wp(zone_num_range_start) << dendl;
+  dout(10) << __func__ << " Duda zone write pointer is 2:  " << zbd_zone_wp(&zones[zone_num_range_start]) << dendl;
+  dout(10) << __func__ << " Duda zone write pointer is 2:  " << zbd_zone_wp(&zones[zone_num_range_start]) << dendl;
+  //zbd_zone_start = can use for ceph assert 
+  //zbd_zone_wp = to check the write pointer of zone
+
+  //convert start to offset
+  //get len by start - end + 1 and multiply by zone size.
+  uint64_t len = (zone_num_range_end + 1 - zone_num_range_start)  * zone_size;
+  ceph_assert(len > 0);
+  //Assert that response is 0 and respond. 
+  //return !zbd_reset_zones(path.c_str(), zone_num_range_start * bdev->zone_size(), off_t len);
+  return true;
+}
+
 int HMSMRDevice::choose_fd(bool buffered, int write_hint) const
 {
   assert(write_hint >= WRITE_LIFE_NOT_SET && write_hint < WRITE_LIFE_MAX);

@@ -200,6 +200,12 @@ public:
     return conventional_region_size;
   }
 
+  //Is there any reason to define this here
+  virtual bool reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_range_end) {
+    ceph_assert(is_smr());
+    return false;
+  }
+
   virtual void aio_submit(IOContext *ioc) = 0;
 
   void set_no_exclusive_lock() {
