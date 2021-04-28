@@ -423,11 +423,12 @@ bool HMSMRDevice::get_thin_utilization(uint64_t *total, uint64_t *avail) const
 
 bool HMSMRDevice::reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_range_end) {
   ceph_assert(is_smr());
+    std::vector<zbd_zone> zones(1000);
   dout(10) << __func__ << " Duda zone size is:  " << zone_size << dendl;
   dout(10) << __func__ << " Duda zone number is:  " << zone_num_range_start << dendl;
-  dout(10) << __func__ << " Duda zone write pointer is:  " << zbd_zone_wp(zone_num_range_start) << dendl;
+  dout(10) << __func__ << " Duda zone write pointer is:  " << zbd_zone_wp(&zone_num_range_start) << dendl;
   dout(10) << __func__ << " Duda zone write pointer is 2:  " << zbd_zone_wp(&zones[zone_num_range_start]) << dendl;
-  dout(10) << __func__ << " Duda zone write pointer is 2:  " << zbd_zone_wp(&zones[zone_num_range_start]) << dendl;
+  dout(10) << __func__ << " Duda path:  " << path << dendl;
   //zbd_zone_start = can use for ceph assert 
   //zbd_zone_wp = to check the write pointer of zone
 
