@@ -443,11 +443,11 @@ bool HMSMRDevice::reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_r
 
   dout(10) << __func__ << " Duda zone size is:  " << zone_size << dendl;
   dout(10) << __func__ << " Duda zone number is:  " << zone_num_range_start << dendl;
-  
-  dout(10) << __func__ << " Duda write pointer:  " << zones[zone_num_range_start].wp << dendl;
-  long long end = zbd_zone_wp(&zones[zone_num_range_start]);
   dout(10) << __func__ << " Duda path:  " << path << dendl;
+  
+  long long end = zbd_zone_wp(&zones[zone_num_range_start]);
   dout(10) << __func__ << " Duda zone write pointer is 2:  " << end << dendl;
+  dout(10) << __func__ << " Duda write pointer:  " << zones[zone_num_range_start].wp << dendl;
   
   //zbd_zone_start = can use for ceph assert 
   //zbd_zone_wp = to check the write pointer of zone
