@@ -425,7 +425,13 @@ bool HMSMRDevice::reset_zones(uint64_t zone_num_range_start, uint64_t zone_num_r
   ceph_assert(is_smr());
   uint64_t len = (zone_num_range_end + 1 - zone_num_range_start)  * zone_size;
   ceph_assert(len > 0);
-  return !zbd_reset_zones(path.c_str(), zone_num_range_start * zone_size, len);
+  int dev = zbd_open(path.c_str(), O_RDWR | O_DIRECT | O_LARGEFILE, nullptr);
+  if (dev < 0) {
+    return false;
+  }
+  auto close_dev = make_scope_guard([dev] { zbd_close(dev); });
+
+  return !zbd_reset_zones(dev, zone_num_range_start * zone_size, len);
 }
 
 int HMSMRDevice::choose_fd(bool buffered, int write_hint) const
