@@ -13977,7 +13977,9 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num)
   //Step 1
   //TODO:- Is there something else that needs to be done for the inmemory storage?
   //List of live objects in zone:
-  bdev->reset_zones(zone_num, zone_num);
+  bool hell = bdev->reset_zones(zone_num, zone_num);
+  
+  dout(10) << __func__ << " Duda hell:  " << hell << dendl;
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
   //Zoned get prefix does not work
