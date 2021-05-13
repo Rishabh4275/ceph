@@ -12387,6 +12387,8 @@ void BlueStore::_zoned_cleaner_thread() {
 	_zoned_clean_zone(zone_num);
       }
       f->mark_zones_to_clean_free(zones_to_clean, db);
+      //Add to a->
+      //bdev->reset_zones(zone_num, zone_num);
       a->mark_zones_to_clean_free();
       l.lock();
     }
@@ -12395,6 +12397,7 @@ void BlueStore::_zoned_cleaner_thread() {
   zoned_cleaner_started = false;
 }
 
+//TODO: Where zone_num is set, check that the num of dead bytes isn't 0.
 void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   dout(10) << __func__ << " cleaning zone " << zone_num << dendl;
   // TODO: (1) copy live objects from zone_num to a new zone, (2) issue a RESET
@@ -12402,6 +12405,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
 
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  dout(10) << __func__ << " Rishabh Passing prefix " << pfx << dendl;
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
 
   while (it->valid())
@@ -12411,28 +12415,171 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
     auto p = bl.cbegin();
     int64_t offset;
     ::decode(offset, p);
-    dout(40) << __func__ << " Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
+    dout(10) << __func__ << " Rishabh Copying object with key (zone_num + oid): " << k << " and offset: " << offset << dendl;
     ghobject_t oid;
     int r = get_key_object(k, &oid);
+    dout(10) << __func__ << " Rishabh get_object key value of r: "<<r<< dendl;
     CollectionRef c = _get_collection(coll_t::meta());
     OnodeRef o = c->get_onode(oid, false);
     o->extent_map.fault_range(db, 0, o->onode.size);
     ceph_assert(offset == o->zoned_get_ondisk_starting_offset());
     //Should I use _read here and the flag = CEPH_OSD_OP_FLAG_FADVISE_NOCACHE
+    dout(10) << __func__ << " Rishabh Read Start"<< dendl;
     r = _do_read(c.get(), o, 0, o->onode.size, bl, 0);
     ceph_assert(r >= 0 && r <= (int)o->onode.size);
+    dout(10) << __func__ << " Rishabh Read End"<< dendl;
 
     OpSequencer *osr = static_cast<OpSequencer *>(c->osr.get());
     TransContext *txc = _txc_create(c.get(), osr, nullptr);
     OnodeRef clonedO = c->get_onode(oid, false);
     clonedO->oid.hobj.set_hash(o->oid.hobj.get_hash());
 
+    dout(10) << __func__ << " Rishabh Clone Start"<< dendl;
     _clone(txc, c, o, clonedO);
+    dout(10) << __func__ << " Rishabh Write Start"<< dendl;
     _do_write(txc, c, o, 0, o->onode.size, bl, 0);
     txc->write_onode(o);
+    dout(10) << __func__ << "Rishabh Truncate Start"<< dendl;
     _do_truncate(txc, c, clonedO, 0);
+    dout(10) << __func__ << " Rishabh While loop iteration over"<< dendl;
+
+    //How do transactions work among all of these points????
+    //Let's write it and send it to the prof and get a response
+
+    //Do I just do a write here or collate and then write
+    //If collate how so ?
+    //Truncate for a whole zone so it'll be after
+    //Ask about the 2 functions that were there in the old code but aren't there anymore
+    //CollectionRef on _get_colleciton based on coll_t, look at coll_map
+
+    //_zoned_update_cleaning_metadata == look at zoned functions
+
+    //compare between _do_read or read, similarly between _do_write and write
+
+    //Last code that I wrote, how we need to mark zones as clean
+    //Igor reviewed my code, db->get transaction.
+
+    // truncate metadata operation,
   }
 
+  //Ask when is the final exam?? -- Hope not on Friday 
+
+  //Step 2 Parse across zone_state and write live bytes to new zone = _do_read
+  //zone_state to
+  /*
+  Collection *c,
+  OnodeRef o,
+  uint64_t offset,
+  size_t length,
+  bufferlist& bl,
+  uint32_t op_flags,
+  uint64_t retry_count
+  */
+  //_do_read(c, o, offset, length, bl, op_flags);
+
+  //Step 3a
+  /*
+  TransContext *txc,
+  CollectionRef &c,
+  OnodeRef &oldo,
+  OnodeRef &newo
+  */
+  //_clone(txc, c, o, no);
+
+  //Step 3b allocate zone and then _do_write or _do_clone
+  /*
+  TransContext *txc,
+  CollectionRef& c,
+  OnodeRef o,
+  uint64_t offset,
+  uint64_t length,
+  bufferlist& bl,
+  uint32_t fadvise_flags
+  */
+  //_do_write(txc, c, o, offset, length, bl, fadvise_flags);
+
+  //Step 4 _do_truncate
+  /*
+  TransContext *txc,
+  CollectionRef& c,
+  OnodeRef o,
+  uint64_t offset,
+  //Mostly ignore :- set<SharedBlob*> *maybe_unshared_blobs
+  */
+
+  //Check before dynamic cast and try it.....
+  ///This weekend work .... [See how things go from there]
+
+  //Look at prof's code and possibly what the issue is, so look at zz, and that the assertion are working.
+
+  //Check the dumps and look at objects written to zone... follow the zones == matching ....
+
+  //_do_truncate(txc, c, o, offset);
+
+  //shared_alloc.a->zoned_mark_zone_clean(zone_num); // Step 5
+  //TODO: HMSMR block device -- reset hasn't been done
+
+  //fm->zoned_mark_zone_clean(zone_num, db->get_transaction()); // Step 6
+
+  //Exten
+  // Step 6 before 5, and during reboot check it.
+  // Walk across all the steps and see what to do if it fails at any point.
+
+  /* RISHABH
+
+  a. Get zone using zone num == Look at reading zone from db first and we'll add comment about inmemory for next step
+  _open_fm
+  get from fm->
+
+  b. Read from db or inmemory
+  Get iterator using zoned the zoned_prefix (Namespace G)
+  const string PREFIX_ZONED_CL_INFO = "G";
+  c. Iterate across the extends to realize which parts are empty
+  d. Read contents of existing extents and _do_write to write them
+
+  1. Print contents of the zone to clean
+  ZonedFreelistManager - load_zone_state_from_db for getting contents from database
+  How?
+
+  2. Figure out the dead bytes and the live bytes = can be found from zoned_types, number of dead bytes
+  Live Bytes?? -- Which bytes exactly are dead or live?
+  Can read extends to figure out dead bytes in zones as they would be live bytes?
+  the object identifiers of all live objects
+  within the zone ABC can be found by querying the G namespace for keys that have ABC as the prefix. [Confirm that this is right, from Prof's thesis]
+
+  G namespace has list of objects with the zone_number and their sizes of live zones.
+
+  3. Figure out which zone to copy these bytes to. = Used ZonedAllocator for this. == first_seq_zone_num ??
+  First we allocate a zone -- check where all allocate is called.
+  _do_write to write... or clone 
+  Does do_write use allocate, how do you get zone to write on?
+  _do_truncate to remove
+
+  Possbily look at cloning at object
+  Where does do write - write an object: 
+  Allocate space for it. 
+  How to mark it busy:
+  Concurrently: End goal : Just don't write code so that limitation:
+  Temp zone: and after filling the zone, write it to an actual zone???? -- Is this what it is being said..
+
+  4. How to update metadata for the moved write bytes [Hoping _do_truncate and _do_write handle this]
+  Can get metadata using ZonedFreelistManager = get_meta
+  How to update?
+  _zoned_update_cleaning_metadata
+
+  5. Reset zone so that it can be used again. [Done below]
+
+  6. Commit to RocksDB? = The transaction code  [Mostly not needed]
+  Using ZonedFreelistManager = write_zone_state_to_db
+
+  Questions:
+  1. We see zones in some order over here, how is the zones order in zones_to_clean set
+  Possibly FIFO? - Follow greedy for starters, find first zone with that much space and add to that zone
+  We don't do random writes, so write to the last zone, and continue.
+  2. How does the allocation of zones work: Do they just continue in a order
+  I think I asked this before, but just to confirm: zones are only written sequentially ? 
+  */
+  dout(10) << __func__ << " Rishabh Function Over"<< dendl;
 }
 #endif
 
@@ -15217,6 +15364,7 @@ int BlueStore::_clone(TransContext *txc,
   dout(15) << __func__ << " " << c->cid << " " << oldo->oid << " -> "
 	   << newo->oid << dendl;
   int r = 0;
+  //RISHABH Why is this check here?
   if (oldo->oid.hobj.get_hash() != newo->oid.hobj.get_hash()) {
     derr << __func__ << " mismatched hash on " << oldo->oid
 	 << " and " << newo->oid << dendl;
