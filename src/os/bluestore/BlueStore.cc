@@ -12388,8 +12388,8 @@ void BlueStore::_zoned_cleaner_thread() {
       }
       f->mark_zones_to_clean_free(zones_to_clean, db);
 
-      uint64_t zone_num_start = *(zones_to_clean.begin());
-      uint64_t zone_num_end = *(zones_to_clean.begin());
+      uint64_t zone_num_start = zones_to_clean->begin();
+      uint64_t zone_num_end = zones_to_clean->begin();
       for (auto zone_num = zones_to_clean.size() != 1 ? std::next(zones_to_clean.begin()) : zones_to_clean.begin(); zone_num != zones_to_clean.end(); ++zone_num) {
         if (zone_num_end + 1 == *zone_num) {
           zone_num_end++;
