@@ -12388,19 +12388,23 @@ void BlueStore::_zoned_cleaner_thread() {
       }
       f->mark_zones_to_clean_free(zones_to_clean, db);
 
-      uint64_t zone_num_start = -1;
-      uint64_t zone_num_end = -1;
-      for (auto zone_num : *zones_to_clean) {
-        if (zone_num_start = -1) {
-          zone_num_start = zone_num_end = zone_num;
-        } else if (zone_num_end + 1 = zone_num && zone_num_end != zones_to_clean.end()) {
+      uint64_t zone_num_start = *(zones_to_clean.begin());
+      uint64_t zone_num_end = *(zones_to_clean.begin());
+      for (auto zone_num = zones_to_clean.size() != 1 ? std::next(zones_to_clean.begin()) : zones_to_clean.begin(); zone_num != zones_to_clean.end(); ++zone_num) {
+        if (zone_num_end + 1 == *zone_num) {
           zone_num_end++;
-        } else {
-          bdev->reset_zones(zone_num_start, zone_num_end);
-          zone_num_start = zone_num_end = -1
+          if (std::next(zone_num) != zones_to_clean.end()){
+            continue;
+          }
         }
+        bdev->reset_zones(zone_num_start, zone_num_end);
+        zone_num_start = zone_num_end = *zone_num != zone_num_end ? *zone_num : -1;
+        if (zone_num_start != -1 && std::next(zone_num) == zones_to_clean.end())
+          {
+              bdev->reset_zones(zone_num_start, zone_num_end);
+          }
       }
-      
+
       a->mark_zones_to_clean_free();
       l.lock();
     }
