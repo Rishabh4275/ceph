@@ -231,7 +231,9 @@ void ZonedAllocator::find_zones_to_clean(void) {
   num_zones_to_clean = num_zones_to_clean_at_once;
 
   for (auto it = zones_to_clean.begin(); it != zones_to_clean.end(); ++it)
-    ldout(cct, 10) << __func__ << " Rishabh Clean Zones " << *it <<" and num of dead bytes "<< zone_states[*it].num_dead_bytes<< dendl;
+    ldout(cct, 10) << __func__ << " Rishabh Clean Zones " << *it << dendl;
+
+    //ldout(cct, 10) << __func__ << " Rishabh Clean Zones " << *it <<" and num of dead bytes "<< zone_states[*it].num_dead_bytes<< dendl;
 
   // TODO: handle the case of disk being full.
   ceph_assert(!zones_to_clean.empty());
