@@ -206,7 +206,7 @@ void ZonedAllocator::find_zones_to_clean(void) {
   
   // TODO: make this tunable; handle the case when there aren't this many zones
   // to clean.
-  const int64_t num_zones_to_clean_at_once = 1;
+  const int64_t num_zones_to_clean_at_once = 2;
 
   std::vector<uint64_t> idx(num_zones);
   std::iota(idx.begin(), idx.end(), 0);
@@ -226,8 +226,12 @@ void ZonedAllocator::find_zones_to_clean(void) {
 		 << *idx.begin() << " num_dead_bytes = " << zone_states[*idx.begin()].num_dead_bytes
 		 << dendl;
 
+  // TODO: Check that the num of dead bytes is not 0 when adding to zones_to_clean
   zones_to_clean = {idx.begin(), idx.begin() + num_zones_to_clean_at_once};
   num_zones_to_clean = num_zones_to_clean_at_once;
+
+  for (auto it = zones_to_clean.begin(); it != zones_to_clean.end(); ++it)
+    ldout(cct, 10) << __func__ << " Rishabh Clean Zones " << *it<< dendl;
 
   // TODO: handle the case of disk being full.
   ceph_assert(!zones_to_clean.empty());
