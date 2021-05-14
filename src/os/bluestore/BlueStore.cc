@@ -12362,7 +12362,7 @@ void BlueStore::_zoned_cleaner_stop() {
   dout(10) << __func__ << " done" << dendl;
 }
 
-void BlueStore::_zoned_reset_zones(std::set<uint64_t> *zones_to_clean){
+void BlueStore::_zoned_reset_zones(std::set<long unsigned int> *zones_to_clean){
   for (auto it = zones_to_clean->begin(); it != zones_to_clean->end(); ) {
     uint64_t start = *it;
     uint64_t end = start;
@@ -12401,8 +12401,6 @@ void BlueStore::_zoned_cleaner_thread() {
       }
       f->mark_zones_to_clean_free(zones_to_clean, db);
       _zoned_reset_zones(zones_to_clean);
-
-
       a->mark_zones_to_clean_free();
       l.lock();
     }
