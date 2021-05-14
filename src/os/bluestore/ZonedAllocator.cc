@@ -230,7 +230,6 @@ void ZonedAllocator::find_zones_to_clean(void) {
   num_zones_to_clean = num_zones_to_clean_at_once;
 
   for (auto it = zones_to_clean.begin(); it != zones_to_clean.end(); ++it) {
-    ldout(cct, 10) << __func__ << " Rishabh Clean Zones " << *it <<" and num of dead bytes "<< zone_states[*it].num_dead_bytes<< dendl;
     if (zone_states[*it].num_dead_bytes == 0) {
       zones_to_clean.erase(*it);
       num_zones_to_clean--;
