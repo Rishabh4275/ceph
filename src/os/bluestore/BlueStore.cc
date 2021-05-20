@@ -12417,7 +12417,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
 
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
-  dout(10) << __func__ << " Rishabh Passing prefix " << pfx << dendl;
+  dout(10) << __func__ << " Duda zoned_clean_zone Passing prefix " << pfx << dendl;
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
 
   while (it->valid())
@@ -14730,7 +14730,8 @@ int BlueStore::_do_write(
   }
 
   uint64_t end = offset + length;
-
+  std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  dout(10) << __func__ << " Duda do_write Passing prefix " << pfx << dendl;
   GarbageCollector gc(c->store->cct);
   int64_t benefit = 0;
   auto dirty_start = offset;
@@ -14801,6 +14802,9 @@ int BlueStore::_do_write(
   o->extent_map.dirty_range(dirty_start, dirty_end - dirty_start);
 
   r = 0;
+
+  pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  dout(10) << __func__ << " Duda do_write end Passing prefix " << pfx << dendl;
 
  out:
   return r;
