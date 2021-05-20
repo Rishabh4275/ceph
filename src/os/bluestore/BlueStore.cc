@@ -14730,7 +14730,7 @@ int BlueStore::_do_write(
   }
 
   uint64_t end = offset + length;
-  std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  std::string pfx = _zoned_get_prefix(offset);
   dout(10) << __func__ << " Duda do_write Passing prefix " << pfx << dendl;
   GarbageCollector gc(c->store->cct);
   int64_t benefit = 0;
@@ -14803,7 +14803,7 @@ int BlueStore::_do_write(
 
   r = 0;
 
-  pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
+  pfx = _zoned_get_prefix(offset);
   dout(10) << __func__ << " Duda do_write end Passing prefix " << pfx << dendl;
 
  out:
