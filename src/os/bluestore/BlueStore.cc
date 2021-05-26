@@ -14827,8 +14827,8 @@ int BlueStore::_do_write(
     dout(10) << __func__ << "  do_write end -- " << it->valid() << dendl; */
   pfx = _zoned_get_prefix(offset);
   dout(10) << __func__ << " Duda Write End Passing prefix " << _string_to_hex(pfx) << dendl;
-  it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
-  dout(10) << __func__ << " Duda Write valid -- " << it->valid() << dendl;
+/*   it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
+  dout(10) << __func__ << " Duda Write valid -- " << it->valid() << dendl; */
  out:
   return r;
 }
