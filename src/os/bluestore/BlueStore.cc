@@ -11520,7 +11520,7 @@ std::string BlueStore::_zoned_get_prefix(uint64_t offset) {
   std::string zone_key;
   _key_encode_u64(zone_num, &zone_key);
   dout(10) << __func__ << " Duda _zoned_get_prefix " << std::hex << zone_key << dendl;
-  dout(10) << __func__ << " Duda _zoned_get_prefix stoi" << std::hex << std::stoi(zone_key) << dendl;
+  //dout(10) << __func__ << " Duda _zoned_get_prefix stoi" << std::hex << std::stoi(zone_key) << dendl;
   return PREFIX_ZONED_CL_INFO + zone_key;
 }
 
