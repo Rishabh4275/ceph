@@ -12430,7 +12430,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
 
   zone_state_t zone_state;
   std::string pfx = _zoned_get_prefix(zone_num * bdev->get_zone_size());
-  dout(10) << __func__ << " Duda Clean Passing prefix " << std::hex << pfx << dendl;
+  dout(10) << __func__ << " Duda Clean Passing prefix " << _string_to_hex(pfx) << dendl;
   //uint64_t rev;
   //_key_decode_u64( &*pfx.begin(), &rev);
   //dout(10) << __func__ << "  reverse " << rev << dendl;
@@ -14749,7 +14749,7 @@ int BlueStore::_do_write(
 
   uint64_t end = offset + length;
   std::string pfx = _zoned_get_prefix(offset);
-  dout(10) << __func__ << " Duda Write Passing prefix " << std::hex << pfx << dendl;
+  dout(10) << __func__ << " Duda Write Passing prefix " << _string_to_hex(pfx) << dendl;
   GarbageCollector gc(c->store->cct);
   int64_t benefit = 0;
   auto dirty_start = offset;
@@ -14825,6 +14825,10 @@ int BlueStore::_do_write(
   dout(10) << __func__ << "  do_write end Passing prefix " << std::hex << pfx << dendl;
    it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
     dout(10) << __func__ << "  do_write end -- " << it->valid() << dendl; */
+  pfx = _zoned_get_prefix(offset);
+  dout(10) << __func__ << " Duda Write End Passing prefix " << _string_to_hex(pfx) << dendl;
+  it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
+  dout(10) << __func__ << " Duda Write valid -- " << it->valid() << dendl;
  out:
   return r;
 }
