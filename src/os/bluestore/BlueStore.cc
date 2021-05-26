@@ -11522,7 +11522,7 @@ std::string BlueStore::_string_to_hex(std::string s){
   for (const auto &item : s) {
         ss << hex << int(item);
   }
-  retString = ss;
+  retString = ss.str();
   return retString;
 }
 
