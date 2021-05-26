@@ -2477,6 +2477,7 @@ private:
   void _zoned_cleaner_stop();
   void _zoned_reset_zones(const std::set<uint64_t> *zones_to_clean);
   void _zoned_cleaner_thread();
+  std::string _string_to_hex(std::string s);
   void _zoned_clean_zone(uint64_t zone_num);
 #endif
 
