@@ -12436,7 +12436,7 @@ void BlueStore::_zoned_clean_zone(uint64_t zone_num) {
   //dout(10) << __func__ << "  reverse " << rev << dendl;
   
   KeyValueDB::Iterator it = db->get_iterator(pfx, KeyValueDB::ITERATOR_NOCACHE);
-    dout(10) << __func__ << " Duda Clean valid -- " << it->valid() << dendl;
+    dout(10) << __func__ << " Duda Clean valid -- " << it->key() << dendl;
   while (it->valid())
   {
     std::string k = it->key();
